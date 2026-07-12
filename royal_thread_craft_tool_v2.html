@@ -42,8 +42,8 @@
     border: 1px solid #8b6914; border-radius: 12px; overflow: hidden;
     margin-bottom: 22px; max-width: 100%;
   }
-  /* pan-y => empty area par swipe se page scroll chalega; logo drag/pinch par rukega */
-  canvas { display:block; max-width: 100%; max-height: 68vh; height: auto; touch-action: pan-y; cursor: grab; }
+  /* touch-action:none => hum khud handle karte hain: logo=drag, bahar=manual page scroll, 2 ungli=pinch */
+  canvas { display:block; max-width: 100%; max-height: 68vh; height: auto; touch-action: none; cursor: grab; }
   canvas.dragging { cursor: grabbing; }
 
   .btn-row { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
@@ -279,7 +279,7 @@ let pinchStartDist = 0, pinchStartSize = 0, pinchCx = 0, pinchCy = 0;
 
 function canvasCoords(e) {
   const r = canvas.getBoundingClientRect();
-  return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
+  return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height), clientY:e.clientY };
 }
 function insideLogo(p){ const {lw,lh}=logoDims(); return p.x>=logoX && p.x<=logoX+lw && p.y>=logoY && p.y<=logoY+lh; }
 function ptsArr(){ return [...pointers.values()]; }
@@ -288,57 +288,64 @@ function clampSize(v){ return Math.max(SIZE_MIN, Math.min(SIZE_MAX, Math.round(v
 function zoomAround(cx, cy, newSize){
   sizeVal = clampSize(newSize);
   const {lw,lh}=logoDims();
-  logoX = cx - lw/2; logoY = cy - lh/2;   // center wahi rakho
+  logoX = cx - lw/2; logoY = cy - lh/2;   // center same rakho
   drawFrame();
 }
+
+// logo par => drag; logo ke bahar => hum khud page scroll karte hain; 2 ungli => pinch zoom
+let scrollMode = false;
 
 canvas.addEventListener('pointerdown', e => {
   if (!mediaType) return;
   const p = canvasCoords(e);
   pointers.set(e.pointerId, p);
+  canvas.setPointerCapture(e.pointerId);
   if (pointers.size === 1) {
-    if (insideLogo(p)) {                    // logo par => drag (scroll roko)
-      isDragging = true; dragOffX = p.x-logoX; dragOffY = p.y-logoY;
+    if (insideLogo(p)) {                    // logo par => drag
+      isDragging = true; scrollMode = false;
+      dragOffX = p.x-logoX; dragOffY = p.y-logoY;
       canvas.classList.add('dragging');
-      canvas.setPointerCapture(e.pointerId);
-      e.preventDefault();
+    } else {                                // logo ke bahar => manual page scroll
+      scrollMode = true; isDragging = false;
     }
-    // logo ke bahar single touch => kuch mat karo, page scroll hone do
-  } else if (pointers.size === 2) {         // 2 ungli => pinch zoom (scroll roko)
-    isDragging = false;
+  } else if (pointers.size === 2) {         // 2 ungli => pinch zoom
+    isDragging = false; scrollMode = false;
     const [a,b] = ptsArr();
     pinchStartDist = dist(a,b) || 1;
     pinchStartSize = sizeVal;
     const {lw,lh}=logoDims();
     pinchCx = logoX + lw/2; pinchCy = logoY + lh/2;
-    try { canvas.setPointerCapture(e.pointerId); } catch(_) {}
-    e.preventDefault();
   }
+  e.preventDefault();
 });
 
 canvas.addEventListener('pointermove', e => {
   if (!pointers.has(e.pointerId)) return;
-  pointers.set(e.pointerId, canvasCoords(e));
+  const prev = pointers.get(e.pointerId);
+  const cur = canvasCoords(e);
+  pointers.set(e.pointerId, cur);
   if (pointers.size >= 2) {
     const [a,b] = ptsArr();
     zoomAround(pinchCx, pinchCy, pinchStartSize * (dist(a,b) / pinchStartDist));
-    e.preventDefault();
   } else if (isDragging) {
-    const p = pointers.get(e.pointerId);
-    logoX = p.x-dragOffX; logoY = p.y-dragOffY;
+    logoX = cur.x-dragOffX; logoY = cur.y-dragOffY;
     drawFrame();
-    e.preventDefault();
+  } else if (scrollMode) {
+    window.scrollBy(0, prev.clientY - cur.clientY);   // khud page scroll
   }
-  // warna scroll hone do
+  e.preventDefault();
 });
 
 function removePointer(e){
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinchStartDist = 0;
-  if (pointers.size === 0) { isDragging = false; canvas.classList.remove('dragging'); }
-  else if (pointers.size === 1 && !isDragging) {
+  if (pointers.size === 0) {
+    isDragging = false; scrollMode = false;
+    canvas.classList.remove('dragging');
+  } else if (pointers.size === 1) {
     const p = ptsArr()[0];
-    if (insideLogo(p)) { isDragging = true; dragOffX = p.x-logoX; dragOffY = p.y-logoY; }
+    if (insideLogo(p)) { isDragging = true; scrollMode = false; dragOffX = p.x-logoX; dragOffY = p.y-logoY; }
+    else { scrollMode = true; isDragging = false; }
   }
 }
 canvas.addEventListener('pointerup', removePointer);

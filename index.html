@@ -67,8 +67,8 @@
 
 <div class="upload-area" onclick="document.getElementById('imgInput').click()">
   <input type="file" id="imgInput" accept="image/*,video/*" onchange="loadFile(event)"/>
-  <p>📷🎬 Photo ya Video Upload Karein</p>
-  <p style="font-size:0.75rem;margin-top:6px;color:#8b6914;">Click to select (image / video)</p>
+  <p>📷🎬 Upload Photo or Video</p>
+  <p style="font-size:0.75rem;margin-top:6px;color:#8b6914;">Tap here to choose an image or video</p>
 </div>
 
 <div class="controls">
@@ -104,7 +104,7 @@
   <button id="dlBtn" onclick="download()">⬇ DOWNLOAD</button>
 </div>
 <div id="status"></div>
-<div id="hint">👆 Upload karein, phir logo ko <b>ungli se pakad kar kahin bhi</b> move karein. Photo = original quality. Video = logo overlay ke saath.</div>
+<div id="hint">👆 Drag the logo anywhere with your finger · pinch with 2 fingers to resize.<br>Photo = original quality · Video = with logo overlay (MP4).</div>
 
 <script>
 const canvas = document.getElementById('canvas');
@@ -354,7 +354,7 @@ canvas.addEventListener('wheel', e => {
 
 /* ---------------- DOWNLOAD ---------------- */
 function download() {
-  if (!mediaType) { alert('Pehle photo ya video upload karein!'); return; }
+  if (!mediaType) { alert('Please upload a photo or video first!'); return; }
   if (mediaType === 'image') downloadImage();
   else downloadVideo();
 }
@@ -370,13 +370,13 @@ function downloadImage() {
     link.download = originalName + '_logo.' + ext;
     link.href = URL.createObjectURL(blob);
     link.click();
-    statusEl.textContent = '✓ Photo download ho gayi (original quality)';
+    statusEl.textContent = '✓ Photo downloaded (original quality)';
   }, type, isPng ? undefined : 1.0);
 }
 
 // VIDEO: canvas + audio ko high bitrate par record karke overlay ke saath export
 function downloadVideo() {
-  if (!window.MediaRecorder) { alert('Is browser me video export support nahi hai. Chrome use karein.'); return; }
+  if (!window.MediaRecorder) { alert('Video export is not supported in this browser. Please use Chrome or Safari.'); return; }
   const dlBtn = document.getElementById('dlBtn');
 
   const stream = canvas.captureStream(30);
@@ -413,8 +413,8 @@ function downloadVideo() {
     videoEl.onended = null;
     dlBtn.disabled = false; dlBtn.textContent = '⬇ DOWNLOAD';
     statusEl.textContent = isMp4
-      ? '✓ Video (MP4) download ho gayi — WhatsApp pe chalegi'
-      : '✓ Video (WebM) download hui. WhatsApp ke liye Safari browser me kholein to MP4 milega.';
+      ? '✓ Video (MP4) downloaded — works on WhatsApp'
+      : '✓ Video (WebM) downloaded. Open it in Safari to get MP4 for WhatsApp.';
   };
 
   // full video ek baar chalao aur record karo
@@ -424,7 +424,7 @@ function downloadVideo() {
   videoEl.play();
   rec.start();
   dlBtn.disabled = true; dlBtn.textContent = '● RECORDING…';
-  statusEl.textContent = 'Recording… video poori chalne tak rukein (' + Math.ceil(videoEl.duration||0) + 's)';
+  statusEl.textContent = 'Recording… please wait until the video finishes (' + Math.ceil(videoEl.duration||0) + 's)';
 
   videoEl.onended = () => { if (rec.state !== 'inactive') rec.stop(); };
 }

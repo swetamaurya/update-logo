@@ -77,10 +77,6 @@
     <input type="range" id="logoOpacity" min="20" max="100" value="100" oninput="onChange()"/>
   </div>
   <div class="ctrl">
-    <label>BG DARK</label>
-    <input type="range" id="bgDark" min="0" max="200" value="0" oninput="onChange()"/>
-  </div>
-  <div class="ctrl">
     <label>GLOW</label>
     <input type="range" id="glow" min="0" max="40" value="14" oninput="onChange()"/>
   </div>
@@ -222,17 +218,6 @@ function drawFrame() {
   drawSource();
   clampPos();
   const { lw, lh } = logoDims();
-
-  const bgAlpha = parseInt(document.getElementById('bgDark').value);
-  if (bgAlpha > 0) {
-    const pad = Math.round(canvas.width * 0.02);
-    ctx.save();
-    ctx.globalAlpha = bgAlpha / 255;
-    ctx.fillStyle = '#100c04';
-    roundRect(ctx, logoX-pad, logoY-pad, lw+pad*2, lh+pad*2, Math.round(lw*0.05));
-    ctx.fill();
-    ctx.restore();
-  }
 
   const opacity = parseInt(document.getElementById('logoOpacity').value) / 100;
   const glow = parseInt(document.getElementById('glow').value);
